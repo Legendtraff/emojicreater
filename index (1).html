@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Emoji Logo Fit</title>
+<link rel="stylesheet" href="style.css" />
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js"></script>
+</head>
+<body>
+
+<div class="app">
+
+  <header class="topbar">
+    <h1>Emoji&nbsp;Logo&nbsp;Fit</h1>
+    <p class="subtitle">Вставь лого в готовую анимацию, покрась — и забери .tgs</p>
+  </header>
+
+  <section class="uploads">
+    <label class="filebtn">
+      <input type="file" id="templateInput" accept=".json,.tgs" hidden />
+      <span class="filebtn-icon">1</span>
+      <span class="filebtn-text">
+        <strong>Шаблон эмодзи</strong>
+        <small id="templateStatus">JSON или .tgs — не выбран</small>
+      </span>
+    </label>
+
+    <label class="filebtn">
+      <input type="file" id="logoInput" accept=".svg" hidden />
+      <span class="filebtn-icon">2</span>
+      <span class="filebtn-text">
+        <strong>Лого</strong>
+        <small id="logoStatus">SVG — не выбран</small>
+      </span>
+    </label>
+  </section>
+
+  <section class="preview-wrap">
+    <div id="preview" class="preview"></div>
+    <p class="empty-hint" id="emptyHint">Загрузите шаблон, чтобы увидеть превью</p>
+  </section>
+
+  <section class="tree-section" id="treeSection" hidden>
+    <div class="section-head">
+      <h2>Слои</h2>
+      <p>Нажмите на 👁 у слоя/группы, чтобы скрыть его и понять, что это. Нажмите на строку, чтобы выбрать её как место под лого.</p>
+    </div>
+    <div id="layerTree" class="layer-tree"></div>
+  </section>
+
+  <section class="controls-section" id="controlsSection" hidden>
+    <div class="section-head">
+      <h2>Оформление лого</h2>
+      <p id="selectedSlotLabel">Слот не выбран</p>
+    </div>
+
+    <div class="controls-row">
+      <label class="color-field">
+        <span>Заливка</span>
+        <input type="color" id="fillColor" value="#ffffff" />
+      </label>
+
+      <label class="color-field">
+        <span>Обводка</span>
+        <input type="color" id="strokeColor" value="#000000" />
+      </label>
+
+      <label class="width-field">
+        <span>Толщина обводки</span>
+        <input type="range" id="strokeWidth" min="0" max="40" value="0" />
+        <output id="strokeWidthOut">0</output>
+      </label>
+    </div>
+
+    <button id="applyBtn" class="primary-btn" disabled>Вставить лого</button>
+  </section>
+
+  <section class="export-section" id="exportSection" hidden>
+    <button id="resetBtn" class="ghost-btn">Сбросить к оригиналу</button>
+    <button id="exportBtn" class="primary-btn">Скачать .tgs</button>
+  </section>
+
+</div>
+
+<script src="svgpath.js"></script>
+<script src="lottie-tools.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
