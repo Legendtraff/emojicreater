@@ -38,53 +38,57 @@ function toggleHidden(node) {
 }
 
 /** Bounding box (in the node's own local coordinate space) of all path-like
- *  shape items directly inside shapesRef (sh / rc / el), ignoring nested
- *  groups. Returns null if nothing found. */
+ *  shape items inside shapesRef, INCLUDING nested groups (their translation
+ *  offset is accumulated; rotation/scale of nested groups is ignored as a
+ *  reasonable approximation). Returns null if nothing found. */
 function computeLocalBBox(shapesRef) {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   let found = false;
 
-  for (const item of shapesRef) {
-    if (item.ty === 'sh' && item.ks && item.ks.k && item.ks.k.v) {
-      for (const [x, y] of item.ks.k.v) {
+  function visit(items, offX, offY) {
+    for (const item of items) {
+      if (item.ty === 'sh' && item.ks && item.ks.k && item.ks.k.v) {
+        for (const [x, y] of item.ks.k.v) {
+          found = true;
+          const px = x + offX, py = y + offY;
+          if (px < minX) minX = px;
+          if (py < minY) minY = py;
+          if (px > maxX) maxX = px;
+          if (py > maxY) maxY = py;
+        }
+      } else if ((item.ty === 'rc' || item.ty === 'el') && item.p && item.s) {
+        const cx = item.p.k[0] + offX, cy = item.p.k[1] + offY;
+        const w = item.s.k[0], h = item.s.k[1];
         found = true;
-        if (x < minX) minX = x;
-        if (y < minY) minY = y;
-        if (x > maxX) maxX = x;
-        if (y > maxY) maxY = y;
+        minX = Math.min(minX, cx - w / 2); maxX = Math.max(maxX, cx + w / 2);
+        minY = Math.min(minY, cy - h / 2); maxY = Math.max(maxY, cy + h / 2);
+      } else if (item.ty === 'gr' && item.it) {
+        let dx = 0, dy = 0;
+        const tr = item.it.find(x => x.ty === 'tr');
+        if (tr && tr.p && tr.p.k) { dx = tr.p.k[0]; dy = tr.p.k[1]; }
+        visit(item.it, offX + dx, offY + dy);
       }
-    } else if (item.ty === 'rc' && item.p && item.s) {
-      const cx = item.p.k[0], cy = item.p.k[1];
-      const w = item.s.k[0], h = item.s.k[1];
-      found = true;
-      minX = Math.min(minX, cx - w / 2); maxX = Math.max(maxX, cx + w / 2);
-      minY = Math.min(minY, cy - h / 2); maxY = Math.max(maxY, cy + h / 2);
-    } else if (item.ty === 'el' && item.p && item.s) {
-      const cx = item.p.k[0], cy = item.p.k[1];
-      const w = item.s.k[0], h = item.s.k[1];
-      found = true;
-      minX = Math.min(minX, cx - w / 2); maxX = Math.max(maxX, cx + w / 2);
-      minY = Math.min(minY, cy - h / 2); maxY = Math.max(maxY, cy + h / 2);
     }
   }
+
+  visit(shapesRef, 0, 0);
 
   if (!found) return null;
   return { minX, minY, maxX, maxY, w: maxX - minX, h: maxY - minY, cx: (minX + maxX) / 2, cy: (minY + maxY) / 2 };
 }
 
-/** Removes existing path/paint items (sh, rc, el, sr, fl, st) from shapesRef,
- *  keeping any other items (tr, tm, rd, gf, gs, ...) in place, and returns
- *  the index at which new items should be spliced in (before "tr" if any). */
+/** Removes ALL existing content from shapesRef (paths, paint, nested groups
+ *  — everything that made up the old shape), keeping only this node's own
+ *  "tr" transform item (if present) so the group's own animated position/
+ *  rotation/scale survives untouched. Returns the index new items should be
+ *  spliced in at (right before "tr", or at the end if there is none). */
 function stripPathAndPaint(shapesRef) {
-  const REMOVE = new Set(['sh', 'rc', 'el', 'sr', 'fl', 'st']);
-  let insertIndex = shapesRef.length;
+  let insertIndex = 0;
   for (let i = shapesRef.length - 1; i >= 0; i--) {
-    if (shapesRef[i].ty === 'tr') { insertIndex = i; }
-  }
-  for (let i = shapesRef.length - 1; i >= 0; i--) {
-    if (REMOVE.has(shapesRef[i].ty)) {
+    if (shapesRef[i].ty !== 'tr') {
       shapesRef.splice(i, 1);
-      if (i < insertIndex) insertIndex--;
+    } else {
+      insertIndex = i;
     }
   }
   return Math.min(insertIndex, shapesRef.length);
